@@ -24,28 +24,23 @@ fn handle_connection(mut stream: TcpStream) {
 
     let contents = fs::read_to_string("index.html").unwrap(); // Read the contents of the file into a string.
 
-    if buffer.starts_with(get) {
-        let response = format!(
-            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
-            contents.len(),
-            contents
-        ); // Create the response with the contents of the file.
-    
-        stream.write(response.as_bytes()).unwrap(); // Write the response to the stream.
-        stream.flush().unwrap(); // Flush the stream to ensure that all data is written to the stream.
-    } else {
-        let status_line = "HTTP/1.1 404 NOT FOUND"; // Create a 404 response.
-        let contents = fs::read_to_string("404.html").unwrap(); // Read the contents of the 404 file into a string.
-        let response = format!(
-            "{}\r\nContent-Length: {}\r\n\r\n{}",
-            status_line,
-            contents.len(),
-            contents
-        ); // Create the response with the contents of the 404 file.
+    let (status_line, filename) = 
+        if buffer.starts_with(get) {
+            ("HTTP/1.1 200 OK", "index.html")
+        } else {
+            ("HTTP/1.1 404 NOT FOUND", "404.html")
+        };
 
-        stream.write(response.as_bytes()).unwrap(); // Write the response to the stream.
-        stream.flush().unwrap(); // Flush the stream to ensure that all data is written to the stream.
-    }
+    let contents = fs::read_to_string(filename).unwrap(); // Read the contents of the 404 file into a string.
+    let response = format!(
+        "{}\r\nContent-Length: {}\r\n\r\n{}",
+        status_line,
+        contents.len(),
+        contents
+    ); // Create the response with the contents of the 404 file.
+
+    stream.write(response.as_bytes()).unwrap(); // Write the response to the stream.
+    stream.flush().unwrap(); // Flush the stream to ensure that all data is written to the stream.
 
     
 }

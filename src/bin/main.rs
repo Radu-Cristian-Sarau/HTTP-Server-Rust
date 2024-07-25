@@ -11,16 +11,18 @@ fn main() {
 
     // Create a new listener.
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+    let pool = ThreadPool::new(4);
 
     // Printing that we have a connection established.
-    for stream in listener.incoming() {
+    for stream in listener.incoming().take(2) {
         let stream = stream.unwrap(); // Get the TCP stream or panic if there is an error.
-        let pool = ThreadPool::new(4);
 
         pool.execute(|| {
             handle_connection(stream);
         }); // Handle the connection in a new thread.
     }
+
+    println!("Shutting down.");
 }
 
 fn handle_connection(mut stream: TcpStream) {

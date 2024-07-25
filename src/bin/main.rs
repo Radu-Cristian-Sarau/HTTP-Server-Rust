@@ -2,6 +2,10 @@ use std::fs;
 use std::net::TcpListener;
 use std::net::TcpStream;
 use std::io::prelude::*;
+use std::thread;
+use std::time::Duration;
+
+use HTTP_Server_Rust::ThreadPool;
 
 fn main() {
 
@@ -11,8 +15,11 @@ fn main() {
     // Printing that we have a connection established.
     for stream in listener.incoming() {
         let stream = stream.unwrap(); // Get the TCP stream or panic if there is an error.
+        let pool = ThreadPool::new(4);
 
-        handle_connection(stream);
+        pool.execute(|| {
+            handle_connection(stream);
+        }); // Handle the connection in a new thread.
     }
 }
 
@@ -21,17 +28,19 @@ fn handle_connection(mut stream: TcpStream) {
     stream.read(&mut buffer).unwrap();
 
     let get = b"GET / HTTP/1.1\r\n";
-
-    let contents = fs::read_to_string("index.html").unwrap(); // Read the contents of the file into a string.
+    let sleep = b"GET /sleep HTTP/1.1\r\n";
 
     let (status_line, filename) = 
         if buffer.starts_with(get) {
             ("HTTP/1.1 200 OK", "index.html")
-        } else {
+        } else if buffer.starts_with(sleep){
+            thread::sleep(Duration::from_secs(5));
+            ("HTTP/1.1 200 OK", "index.html")
+        }else {
             ("HTTP/1.1 404 NOT FOUND", "404.html")
         };
 
-    let contents = fs::read_to_string(filename).unwrap(); // Read the contents of the 404 file into a string.
+    let contents = fs::read_to_string(filename).unwrap(); // Read the contents of the file.
     let response = format!(
         "{}\r\nContent-Length: {}\r\n\r\n{}",
         status_line,
